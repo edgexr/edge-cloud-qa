@@ -1,0 +1,92 @@
+# Copyright 2022 MobiledgeX, Inc
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mexprocesses
+  labels:
+    app: mexprocesses
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mexprocesses
+  template:
+    metadata:
+      labels:
+        app: mexprocesses
+    spec:
+      containers:
+      - name: controller
+        image: registry.mobiledgex.net:5000/mobiledgex/edge-cloud:$AUTOMATION_DOCKERTAG
+        imagePullPolicy: Always
+        command:
+         - controller
+        args:
+         - "--etcdUrls"
+         - "mex-etcd-cluster:2379"
+         - "--notifyAddr"
+         - "127.0.0.1:37001"
+         - "--apiAddr"
+         - "0.0.0.0:55001"
+         - "--httpAddr"
+         - "0.0.0.0:36001"
+         - "--tls"
+         - "/root/tls/mex-server.crt"
+         - "-d"
+         - "etcd,api,notify"
+      - name: crmbuckhorn
+        image: registry.mobiledgex.net:5000/mobiledgex/edge-cloud:$AUTOMATION_DOCKERTAG
+        imagePullPolicy: Always
+        command:
+         - crmserver
+        env:
+         - name: MEX_CF_USER
+           value: none
+         - name: MEX_CF_KEY
+           value: none
+         - name: MEX_SSH_KEY
+           value: id_rsa_mobiledgex
+         - name: MEX_DOCKER_REG_PASS
+           value: none
+         - name: MEX_DIR
+           value: /home/jenkins/.mobiledgex
+         - name: OS_AUTH_URL
+           value: none
+         - name: OS_CACERT
+           value: /home/jenkins/.mobiledgex/buckhornedgecloudtelecomde.crt
+         - name: OS_USERNAME
+           value: mexadmin
+         - name: OS_PASSWORD
+           value: none
+         - name: OS_REGION_NAME
+           value: none
+         - name: OS_TENANT_NAME
+           value: mex
+        args:
+         - "--apiAddr"
+         - "0.0.0.0:50051"
+         - "--cloudletKey"
+         - "{\"operator_key\":{\"name\":\"BONN1\"},\"name\":\"automationcloudlet\"}"
+         - "--notifyAddrs"
+         - "controller:37001"
+         - "--tls"
+         - "/root/tls/mex-server.crt"
+         - "--d"
+         - "mexos"
+      imagePullSecrets:
+       - name: mexreg-secret
+
+
